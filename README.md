@@ -1,2 +1,2 @@
 # Solar_Tomography
-Solar tomography software development project
+Solar tomography software development project.
