@@ -23,6 +23,7 @@ no_of_ART_iterations = 2;
 % Limb darkening coefficient.
 u = 0.56;
 
+%
 load CubeDataTest;
 
 % Thomson G-factor to be used.
