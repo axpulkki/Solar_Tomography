@@ -1,0 +1,1 @@
+%cc.m%% Abbreviation for the command:% >> clear all; close all;% Antti Pulkkinen, February 2001.clear all;close all;
