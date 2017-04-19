@@ -3,6 +3,9 @@ function [G_T,G_P,G_R,G_tot] = G_Thomson(x_obs,y_obs,z_obs,x,y,z,u)
 %   
 % [G_T,G_P,G_R,G_tot] = G_Thomson(x_obs,y_obs,z_obs,x,y,z,u) ... (x,y,z)
 % the location of the plasma packet.
+%  x y z_obs        is the physical location of the actual observer. [m] SI units
+%  x y z            is the meshgrid syntax is 3D cubes of the true recon cube
+%  u                ~ 0.5 limb darkening cooef.
 %
 
 % Notation from Howard and Tappin (Space Sci Rev (2009) 147: 31?54 DOI 10.1007/s11214-009-9542-5) used.

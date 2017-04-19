@@ -4,6 +4,8 @@ function [y_POS,z_POS,resolution_meters,data_2D_LOS] = generate_2D_LOS_data(x_da
 % function [x_POS,y_POS,resolution_meters,data_2D_LOS] =
 % generate_2D_LOS_data(y_data,z_data,z_data,data,r_obs,theta_obs,lambda_obs,FOV,resolution,dr,u,G_factor)
 % ...
+%  data_2D_LOS is main output . it is 2D coro Im of True structure. ie the
+%  syntheic images like EEGL.
 
 %   Antti Pulkkinen, March 2017.
 

@@ -72,7 +72,7 @@ for ii = 1:length(x_POS_rot),
         % Length of the LOS ray piercing the cube.
         cube_pierce_length(ii) = sqrt( (r_LOS_steps(1,1) - r_LOS_steps(1,end)).^2 + (r_LOS_steps(2,1) - r_LOS_steps(2,end)).^2 + (r_LOS_steps(3,1) - r_LOS_steps(3,end)).^2 );
         
-        % Find the closest grid points along the LOS.
+        % Find the closest grid points along the LOS. VERY SLOW.
         for ss = 1:length(kk_LOS_in_domain),
             
             grid_distance = sqrt( (r_LOS_steps(1,ss) - x_data).^2 + (r_LOS_steps(2,ss) - y_data).^2 + (r_LOS_steps(3,ss) - z_data).^2 );
