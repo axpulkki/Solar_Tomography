@@ -10,12 +10,12 @@ Rs = 695700e3; % m.
 AU = 149598000e3; % m.
 
 FOV = [2 9]; % Rs.
-resolution = 70; % arcsec.
+resolution = 100; % arcse c.
 
 r_obs = 1*AU; % m.
 theta_obs =  linspace(-70,70,6); % deg. Heliocentric longitude. [-45 45] [-45 0 45] [-45 -15 15 45] [-45 -20 -10 10 20 45] [-60 -45 -20 -10 10 20 45 60]
 lambda_obs = zeros(size(theta_obs)); % deg. Heliocentric latitude.
-dr = 0.03*Rs; % m.
+dr = 0.05*Rs; % m.  % this is the poor Breshman step length
 
 % The number of iterations.
 no_of_ART_iterations = 2;
@@ -25,6 +25,7 @@ u = 0.56;
 
 %
 load CubeDataTest;
+% load ProxyCubeDataTest;
 
 % Thomson G-factor to be used.
 G_factor = 'G_tot';
@@ -79,7 +80,7 @@ for art_iterations = 1:no_of_ART_iterations,
             finite_grid_indices = tmp_grid_indices(finite_indices);
             
             % Use only grid points that were not populated by another LOS. Some
-            % convolution with the indices here per the comment above...
+            % convolution with the indices here per comment above...
             [finite_grid_indices,finite_indices] = setdiff(finite_grid_indices,covered_grid_indices);
             
             % Continue only of the LOS "pierced" the data cube at more than one data point.
@@ -92,7 +93,7 @@ for art_iterations = 1:no_of_ART_iterations,
                 
                 % Segment lengths of the grid points along the LOS ray. YOU MAY WANT TO CHECK THIS MORE!
                 dr_LOS_ray = cube_pierce_length(ss)/(length(finite_grid_indices) - 1);
-                % Distribution of the electrons per ART rule. Weights based on the Thomson parameters and the segment lengths.
+                % Distribution of the electrons per ART rule. Weights based on Thomson parameters and the segment lengths.
                 data_spread_along_LOS = (data_2D_LOS(ss) - data_2D_LOS_iteration(ss))*(1/length(finite_grid_indices)).*(1./G_tot_LOS(ss,finite_indices))*(1/dr_LOS_ray);
                 Ne_inverted(finite_grid_indices) = Ne_inverted(finite_grid_indices) + data_spread_along_LOS;
                 

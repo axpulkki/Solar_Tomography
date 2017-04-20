@@ -6,7 +6,7 @@
 cc;
 
 % The structure type;
-structureType = 'CurrentSheet';
+structureType = 'Gaussian';         % CurrentSheet   Gaussian
 
 % Solar radius.
 Rs = 695700e3; % m.
@@ -118,6 +118,6 @@ end;
 
 figure; slice(x,y,z,Ne,[0],[5],[-3.5]); colorbar; colormap('gray'); shading('interp'); xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]'); xlim([-15 15]); ylim([-15 15]); zlim([-15 15]);
 
-x_data = x*Rs; y_data = y*Rs; z_data = z*Rs; data = Ne; save CubeDataTest x_data y_data z_data data;
+x_data = x*Rs; y_data = y*Rs; z_data = z*Rs; data = Ne; save CubeDataGaussian x_data y_data z_data data;
 
 

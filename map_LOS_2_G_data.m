@@ -42,7 +42,12 @@ no_of_steps = round(max([( max(x_data(:)) - min(x_data(:))) (max(x_data(:)) - mi
 grid_indices = NaN*zeros(length(y_POS),no_of_steps); cube_pierce_length = NaN*zeros(length(y_POS),1);
 G_T_LOS = grid_indices; G_P_LOS = grid_indices; G_R_LOS = grid_indices; G_tot_LOS = grid_indices;
 
-% Loop over the LOS vectors.
+% Loop over the LOS vectors. 
+% NPS: This FOR LOOP, is repeat subroutine from generate_2D_LOS_data
+% NPS: I am working on making this code work as a single line replacement
+
+% OUT_Indices = NPS_eg_bresen (Ist_loc, Ien_loc, IN_extra);
+
 for ii = 1:length(x_POS_rot),
     
     % LOS unit vectors.
