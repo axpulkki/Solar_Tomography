@@ -1,13 +1,14 @@
 function OUT_Indices = NPS_eg_bresen (Ist_loc, Ien_loc,IN_extra)
 % 
 %   Ist_loc     =   Start position of single ray. ie camera pixel 
-%                   location in phyisical space.
+%                   location in phyisical space. [x,y,z] in units of [m]
 % 
 %   Ien_loc     =   End position of single ray. eg Arbitrary position
 %                   infinitely far away along correct ray direction
+%                   [x,y,z] in units of [m]
 % 
 %   IN_extra    = [Structure]. values to incl. any other required inputs
-%                  =  xgrid, ygrid, zgrid of data cube
+%                  =  xgrid, ygrid, zgrid of data cube (coming from meshgrid)
 %                  = debug = [1] or [0] for figure plotting. default = 0
 % 
 %   OUT_Indices = index array of ea voxel for single ray path though data cube
@@ -109,8 +110,8 @@ ExIndexGrd = voxel2ind (xn,yn,Expt);
 %% Find index array for ray along Data cube
 [xpt,ypt,zpt] = bresenham_line3d (Enpt,Expt,0);
 brhmPt = [xpt',ypt',zpt'];
-BhmIndexGrd = voxel2ind (xn,yn,brhmPt);
-
+BhmIndexGrd = voxel2ind (xn,yn,brhmPt);  % need to check this is same as inbuilt: sub2ind
+sub2ind
 
 %% figure checking
 if Fplot == 1
