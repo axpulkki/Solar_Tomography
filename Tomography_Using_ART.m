@@ -10,27 +10,28 @@ Rs = 695700e3; % m.
 AU = 149598000e3; % m.
 
 FOV = [2 9]; % Rs.
-resolution = 70; % arcsec.
+resolution = 100; % arcse c.
 
 r_obs = 1*AU; % m.
 theta_obs =  linspace(-70,70,6); % deg. Heliocentric longitude. [-45 45] [-45 0 45] [-45 -15 15 45] [-45 -20 -10 10 20 45] [-60 -45 -20 -10 10 20 45 60]
+NcamViews = NcamViews; % Number of camera view points. reduces single calc thorugh for loops
 lambda_obs = zeros(size(theta_obs)); % deg. Heliocentric latitude.
-dr = 0.03*Rs; % m.
+
+dr = 0.05*Rs; % m.  % this is the poor Bresenhman step length
 
 % The number of iterations.
 no_of_ART_iterations = 2;
 
 % Limb darkening coefficient.
 u = 0.56;
-
 %
-load CubeDataTest;
+load CubeDataTest; % load ProxyCubeDataTest;
 
 % Thomson G-factor to be used.
 G_factor = 'G_tot';
 
-%%
 
+%%
 % Data dimension.
 [i_dim,j_dim,k_dim] = size(x_data);
 
@@ -38,21 +39,32 @@ data_LOS_master = [];
 G_tot_master = [];
 G_tot_tmp_master = zeros(1,length(x_data(:)));
 
-rms_difference = zeros(1,no_of_ART_iterations*length(theta_obs));
+rms_difference = zeros(1,no_of_ART_iterations*NcamViews);
 analysis_counter = 1;
 
 % Initialize the reconstructed data cube. Use the same grid as for the
 % "true" data.
 Ne_inverted = zeros(size(data));
 
-for art_iterations = 1:no_of_ART_iterations,
-    
-    disp(sprintf('   ART iteration %01.0f/%01.0f...',art_iterations,no_of_ART_iterations));
-    
-    % Reconstruction over the viewpoints.
-    for ii = 1:length(theta_obs),
-        
-        disp(sprintf('     Processing observation %01.0f/%01.0f...',ii,length(theta_obs)));
+
+
+%% CALC n record brensenham indices FOR ALL PIXELS and FOR ALL CAMERAS.
+
+for ll = 1: NcamViews
+    for pp = 1:N_pix_in_image
+        % some more setup stuff needed
+        imageInd.OUT_Indices{1,ll}(:,pp) = NPS_eg_bresen (Ist_loc, Ien_loc,IN_extra);
+    end
+end
+
+
+
+%% multiple iterate through all camera view locations
+for art_iterations = 1:no_of_ART_iterations
+    fprintf('   ART iteration %01.0f/%01.0f...\n',art_iterations,no_of_ART_iterations);
+    %% single Iterate Reconstruction over the viewpoints.
+    for ii = 1:NcamViews
+        fprintf('     Processing observation %01.0f/%01.0f...\n',ii,NcamViews);
         
         % Container for treated grid indices in the reconstruction cube.
         covered_grid_indices = zeros(1,length(x_data(:))); grid_container_counter = 1;
@@ -79,7 +91,7 @@ for art_iterations = 1:no_of_ART_iterations,
             finite_grid_indices = tmp_grid_indices(finite_indices);
             
             % Use only grid points that were not populated by another LOS. Some
-            % convolution with the indices here per the comment above...
+            % convolution with the indices here per comment above...
             [finite_grid_indices,finite_indices] = setdiff(finite_grid_indices,covered_grid_indices);
             
             % Continue only of the LOS "pierced" the data cube at more than one data point.
@@ -92,7 +104,7 @@ for art_iterations = 1:no_of_ART_iterations,
                 
                 % Segment lengths of the grid points along the LOS ray. YOU MAY WANT TO CHECK THIS MORE!
                 dr_LOS_ray = cube_pierce_length(ss)/(length(finite_grid_indices) - 1);
-                % Distribution of the electrons per ART rule. Weights based on the Thomson parameters and the segment lengths.
+                % Distribution of the electrons per ART rule. Weights based on Thomson parameters and the segment lengths.
                 data_spread_along_LOS = (data_2D_LOS(ss) - data_2D_LOS_iteration(ss))*(1/length(finite_grid_indices)).*(1./G_tot_LOS(ss,finite_indices))*(1/dr_LOS_ray);
                 Ne_inverted(finite_grid_indices) = Ne_inverted(finite_grid_indices) + data_spread_along_LOS;
                 
@@ -177,7 +189,7 @@ for art_iterations = 1:no_of_ART_iterations,
         rms_difference(analysis_counter) = sum( sqrt( ( data(:) - Ne_inverted_ART_gridded(:) ).^2 ) )/length(data(:));
         analysis_counter = analysis_counter + 1;
         
-        disp(sprintf('     %01.0f/%01.0f spacecraft. RMS difference in the electron density %01.0f #/m^3.',ii,length(theta_obs),rms_difference(analysis_counter-1)));
+        disp(sprintf('     %01.0f/%01.0f spacecraft. RMS difference in the electron density %01.0f #/m^3.',ii,NcamViews,rms_difference(analysis_counter-1)));
         
         
     end; % Different viewpoints.
@@ -207,10 +219,10 @@ colormap(gray); shading('interp');
 figure; plot(squeeze(z_data(26,26,:)/Rs),squeeze(Ne_inverted(26,26,:)),'k'); hold on; plot(squeeze(z_data(26,26,:)/Rs),squeeze(data(26,26,:)),'b');
 xlabel('z [Rs]'); ylabel('Electron density [#/m^3]'); title('True (blue) and reconstructed (black) electron density'); grid on;
 
-eval(sprintf('print -dpng ./plots/Line_plot_true_reconstructed_%01.0f_spacecraft.png',length(theta_obs))); close;
+eval(sprintf('print -dpng ./plots/Line_plot_true_reconstructed_%01.0f_spacecraft.png',NcamViews)); close;
 
 figure; plot(rms_difference); grid on;
-title(sprintf('Convergence for %1.0f ART iterations and %01.0f spacecraft',no_of_ART_iterations,length(theta_obs))); xlabel('ART step'); ylabel('RMS [#/m^3]');
+title(sprintf('Convergence for %1.0f ART iterations and %01.0f spacecraft',no_of_ART_iterations,NcamViews)); xlabel('ART step'); ylabel('RMS [#/m^3]');
 
 %
 % figure; slice(x_data/Rs,y_data/Rs,z_data/Rs,Ne_inverted_svd_gridded,[4],[5],[5]); colorbar; title('Reconstructed electron density [#/m^3] in the solar corona'); xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]');
