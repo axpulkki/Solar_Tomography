@@ -1,21 +1,20 @@
-function [y_POS,z_POS,resolution_meters,data_2D_LOS] = generate_2D_LOS_data(x_data,y_data,z_data,data,r_obs,theta_obs,lambda_obs,FOV,resolution,dr,u,G_factor)
+function [y_POS,z_POS,resolution_meters,data_2D_LOS] = generate_2D_LOS_data(x_data,y_data,z_data,data,r_obs,theta_obs,lambda_obs,FOV,resolution,u,G_factor)
 %GENERATE_2D_LOS_DATA
 %
 % function [x_POS,y_POS,resolution_meters,data_2D_LOS] =
-% generate_2D_LOS_data(y_data,z_data,z_data,data,r_obs,theta_obs,lambda_obs,FOV,resolution,dr,u,G_factor)
+% generate_2D_LOS_data(y_data,z_data,z_data,data,r_obs,theta_obs,lambda_obs,FOV,resolution,u,G_factor)
 % ...
+%   *_data the grid CUBE...
+%
 %  data_2D_LOS is main output . it is 2D coro Im of True structure. ie the
-%  syntheic images like EEGL.
+%  synthetic images like EEGL.
 
 %   Antti Pulkkinen, March 2017.
 
 % Solar radius.
 Rs = 695700e3; % m.
 % 1 AU
-AU = 149598000e3; % m. 
-
-% Do not process LOS points outside the max. radius of the data domain.
-LOS_limit_domain = max(sqrt( x_data(:).^2 + y_data(:).^2 + z_data(:).^2 )); % m.
+AU = 149598000e3; % m.
 
 % Resolution in radians.
 resolution_rad = resolution*(pi/648000);
@@ -49,55 +48,46 @@ end;
 % Rotate the observer coordinates.
 x_obs = r_obs; y_obs = 0; z_obs = 0;
 r_obs_rot = R_z*R_y*[x_obs ; y_obs ; z_obs];
-x_obs_rot = r_obs_rot(1); y_obs_rot = r_obs_rot(2); z_obs_rot = r_obs_rot(3); 
+x_obs_rot = r_obs_rot(1); y_obs_rot = r_obs_rot(2); z_obs_rot = r_obs_rot(3);
 
-% Loop over the LOS vectors.
-data_2D_LOS = NaN*x_POS_rot;
+% Grid definitions for the ray tracing algorithm.
+grid3D.nx = length(x_data(1,:,1));
+grid3D.ny = length(y_data(:,1,1));
+grid3D.nz = length(z_data(1,1,:));
+grid3D.minBound = [min(x_data(1,:,1)), min(y_data(:,1,1)), min(z_data(1,1,:))]';
+grid3D.maxBound = [max(x_data(1,:,1)), max(y_data(:,1,1)), max(z_data(1,1,:))]';
+
+% Initialize the data_2D_LOS. Default is zero emissions detected in the LOS element.
+data_2D_LOS = zeros(1,length(x_POS_rot));
+
+% Loop over the LOS.
 for ii = 1:length(x_POS_rot),
     
     % LOS unit vectors.
     r_LOS = [(x_obs_rot - x_POS_rot(ii)) ; (y_obs_rot - y_POS_rot(ii)) ; (z_obs_rot - z_POS_rot(ii))];
-    e_LOS = r_LOS/sqrt(r_LOS.'*r_LOS);
+    e_LOS = -r_LOS/sqrt(r_LOS.'*r_LOS);
     
-    % Number of LOS steps required to march from the observer to the opposite side of the heliosphere.
-    no_of_LOS_steps = length(-r_obs:dr:r_obs);
+    % Determine the grid indices the LOS ray passes through. THIS IS
+    % WHERE WE CAN PLUG IN ALSO OTHER RAY TRACING ALGORITHMS.
+    grid_indices = amanatidesWooAlgorithm_AP(r_obs_rot, e_LOS, grid3D);
     
-    r_LOS_steps = NaN*zeros(3,no_of_LOS_steps);
-    radius_LOS_steps = NaN*zeros(1,no_of_LOS_steps);
-    
-    for jj = 1:no_of_LOS_steps;
+    % Continue only if the LOS pierced the data cube through more than one grid point.
+    if length(grid_indices) > 1,
         
-        r_LOS_steps(:,jj) = r_obs_rot - jj*dr*e_LOS;
-        radius_LOS_steps(:,jj) = sqrt(r_LOS_steps(:,jj).'*r_LOS_steps(:,jj));
+        % Extract data values along the LOS. Values outside the data cube domain are set to 0.
+        data_along_LOS = data(grid_indices);
+        
+        % Thomson scattering parameters along the LOS.
+        [G_T,G_P,G_R,G_tot] = G_Thomson(x_obs_rot,y_obs_rot,z_obs_rot,x_data(grid_indices),y_data(grid_indices),z_data(grid_indices),u);
+        
+        % Segment lengths of the grid points along the LOS ray. ASSUME THE GRID INDICES ARE GIVEN IN ORDER FROM START TO END OF THE RAY.
+        % YOU MAY WANT TO CHECK THIS MORE!
+        cube_pierce_length = sqrt( (x_data(grid_indices(end)) - x_data(grid_indices(1))).^2 + (y_data(grid_indices(end)) - y_data(grid_indices(1))).^2 + (z_data(grid_indices(end)) - z_data(grid_indices(1))).^2 );
+        dr_LOS_ray = cube_pierce_length/(length(grid_indices) - 1);
+        
+        % LOS integral.
+        eval(sprintf('data_2D_LOS(ii) = sum(dr_LOS_ray*%s.*data_along_LOS);',G_factor));
+        
     end;
     
-    % For computational efficiency, include LOS points only within given LOS_limit_domain radius.
-    kk_LOS_limit_domain = find(radius_LOS_steps < LOS_limit_domain);
-    % Trim the LOS set.
-    r_LOS_steps = r_LOS_steps(:,kk_LOS_limit_domain);
-    
-    % Interpolate data values along the LOS. Values outside the data cube domain are set to 0.
-    data_along_LOS = interp3(x_data,y_data,z_data,data,r_LOS_steps(1,:),r_LOS_steps(2,:),r_LOS_steps(3,:),'nearest',0);
-    
-    % Thomson scattering parameters along the LOS.
-    [G_T,G_P,G_R,G_tot] = G_Thomson(x_obs_rot,y_obs_rot,z_obs_rot,r_LOS_steps(1,:),r_LOS_steps(2,:),r_LOS_steps(3,:),u);
-          
-    % LOS integral.
-    eval(sprintf('data_2D_LOS(ii) = sum(dr*%s.*data_along_LOS);',G_factor));
-    
 end;
-
-% figure; plot3(x_POS_rot/Rs,y_POS_rot/Rs,z_POS_rot/Rs,'.'); grid on; xlabel('x'); ylabel('y'); zlabel('z'); axis equal;
-% 
-% figure; plot3(x_POS_rot/AU,y_POS_rot/AU,z_POS_rot/AU,'.'); grid on; xlabel('x'); hold on; ylabel('y'); zlabel('z'); axis equal;
-% plot3(x_obs_rot/AU,y_obs_rot/AU,z_obs_rot/AU,'*'); xlim([-1 1]); ylim([-1 1]); zlim([-1 1]);
-% plot3(r_LOS_steps(1,:)/AU,r_LOS_steps(2,:)/AU,r_LOS_steps(3,:)/AU,'color','k');
-% 
-% data_2D_LOS_grid = griddata(y_POS,z_POS,data_2D_LOS,y_POS_tmp,z_POS_tmp,'linear');
-% [kk_i,kk_j] = find(radius_POS < FOV(1)*Rs); data_2D_LOS_grid(kk_i,kk_j) = NaN;
-% figure; pcolor(y_POS_tmp/Rs,z_POS_tmp/Rs,data_2D_LOS_grid); colorbar;
-% 
-% pause;
-% 
-% 
-% 

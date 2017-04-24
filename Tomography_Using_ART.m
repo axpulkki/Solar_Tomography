@@ -1,5 +1,7 @@
 %TOMOGRAPHY_USING_ART Try using algebraic reconstruction technique.
 
+tic
+
 cc;
 
 %%
@@ -9,18 +11,16 @@ Rs = 695700e3; % m.
 % 1 AU
 AU = 149598000e3; % m.
 
-FOV = [2 9]; % Rs.
-resolution = 100; % arcse c.
+FOV = [2 15]; % Rs.
+resolution = 200; % arcsec.
 
 r_obs = 1*AU; % m.
-theta_obs =  linspace(-70,70,6); % deg. Heliocentric longitude. [-45 45] [-45 0 45] [-45 -15 15 45] [-45 -20 -10 10 20 45] [-60 -45 -20 -10 10 20 45 60]
-NcamViews = NcamViews; % Number of camera view points. reduces single calc thorugh for loops
+theta_obs =  linspace(-70,70,2); % deg. Heliocentric longitude. [-45 45] [-45 0 45] [-45 -15 15 45] [-45 -20 -10 10 20 45] [-60 -45 -20 -10 10 20 45 60]
+NcamViews = length(theta_obs); % Number of camera view points. reduces single calc thorugh for loops
 lambda_obs = zeros(size(theta_obs)); % deg. Heliocentric latitude.
 
-dr = 0.05*Rs; % m.  % this is the poor Bresenhman step length
-
 % The number of iterations.
-no_of_ART_iterations = 2;
+no_of_ART_iterations = 1;
 
 % Limb darkening coefficient.
 u = 0.56;
@@ -48,15 +48,15 @@ Ne_inverted = zeros(size(data));
 
 
 
-%% CALC n record brensenham indices FOR ALL PIXELS and FOR ALL CAMERAS.
-
-for ll = 1: NcamViews
-    for pp = 1:N_pix_in_image
-        % some more setup stuff needed
-        imageInd.OUT_Indices{1,ll}(:,pp) = NPS_eg_bresen (Ist_loc, Ien_loc,IN_extra);
-    end
-end
-
+% %% CALC n record brensenham indices FOR ALL PIXELS and FOR ALL CAMERAS.
+% 
+% for ll = 1: NcamViews
+%     for pp = 1:N_pix_in_image
+%         % some more setup stuff needed
+%         imageInd.OUT_Indices{1,ll}(:,pp) = NPS_eg_bresen (Ist_loc, Ien_loc,IN_extra);
+%     end
+% end
+% 
 
 
 %% multiple iterate through all camera view locations
@@ -70,15 +70,15 @@ for art_iterations = 1:no_of_ART_iterations
         covered_grid_indices = zeros(1,length(x_data(:))); grid_container_counter = 1;
         
         % Generate synthetic coronagraph image from "true" data.
-        [y_POS,z_POS,resolution_meters,data_2D_LOS] = generate_2D_LOS_data(x_data,y_data,z_data,data,r_obs,theta_obs(ii),lambda_obs(ii),FOV,resolution,dr,u,G_factor);
-        
+        [y_POS,z_POS,resolution_meters,data_2D_LOS] = generate_2D_LOS_data(x_data,y_data,z_data,data,r_obs,theta_obs(ii),lambda_obs(ii),FOV,resolution,u,G_factor);
+                
         % Generate coronagraph image from data volume being populated. This
         % step could be skipped for the first iteration but is included here
         % for simplicity and laziness.
-        [y_POS_iteration,z_POS_iteration,resolution_meters_iteration,data_2D_LOS_iteration] = generate_2D_LOS_data(x_data,y_data,z_data,Ne_inverted,r_obs,theta_obs(ii),lambda_obs(ii),FOV,resolution,dr,u,G_factor);
+        [y_POS_iteration,z_POS_iteration,resolution_meters_iteration,data_2D_LOS_iteration] = generate_2D_LOS_data(x_data,y_data,z_data,Ne_inverted,r_obs,theta_obs(ii),lambda_obs(ii),FOV,resolution,u,G_factor);
         
         % Compute the G factors and the LOS points within the grid.
-        [G_T_LOS,G_P_LOS,G_R_LOS,G_tot_LOS,grid_indices,cube_pierce_length] = map_LOS_2_G_data(x_data(:),y_data(:),z_data(:),y_POS,z_POS,r_obs,theta_obs(ii),lambda_obs(ii),dr,u);
+        [G_T_LOS,G_P_LOS,G_R_LOS,G_tot_LOS,grid_indices,cube_pierce_length] = map_LOS_2_G_data(x_data,y_data,z_data,y_POS,z_POS,r_obs,theta_obs(ii),lambda_obs(ii),u);
         
         % Loop over the LOS to assign the new values to the grid points.
         for ss = 1:length(y_POS),
@@ -91,8 +91,9 @@ for art_iterations = 1:no_of_ART_iterations
             finite_grid_indices = tmp_grid_indices(finite_indices);
             
             % Use only grid points that were not populated by another LOS. Some
-            % convolution with the indices here per comment above...
-            [finite_grid_indices,finite_indices] = setdiff(finite_grid_indices,covered_grid_indices);
+            % convolution with the indices here per the comment above...
+            %[finite_grid_indices,finite_indices] = setdiff(finite_grid_indices,covered_grid_indices);
+            [finite_grid_indices,finite_indices] = LIGHT_setdiff(finite_grid_indices,covered_grid_indices);
             
             % Continue only of the LOS "pierced" the data cube at more than one data point.
             if length(finite_grid_indices) > 1,
@@ -107,33 +108,7 @@ for art_iterations = 1:no_of_ART_iterations
                 % Distribution of the electrons per ART rule. Weights based on Thomson parameters and the segment lengths.
                 data_spread_along_LOS = (data_2D_LOS(ss) - data_2D_LOS_iteration(ss))*(1/length(finite_grid_indices)).*(1./G_tot_LOS(ss,finite_indices))*(1/dr_LOS_ray);
                 Ne_inverted(finite_grid_indices) = Ne_inverted(finite_grid_indices) + data_spread_along_LOS;
-                
-                
-                %            % TEST TEST
-                %
-                %
-                %             if isnan(data_spread_along_LOS)
-                %
-                %                 disp('NaNs in the data spread'); pause;
-                %
-                %             end;
-                %
-                %
-                %             cube_pierce_length(ss)/Rs
-                %
-                %             (cube_pierce_length(ss)/Rs)/(length(finite_grid_indices) - 1)
-                %
-                %             Ne_inverted(finite_grid_indices)
-                %
-                %             figure; plot3(x_data(finite_grid_indices)/Rs,y_data(finite_grid_indices)/Rs,z_data(finite_grid_indices)/Rs,'.'); grid on; xlim([-10 10]); ylim([-10 10]); zlim([-10 10]);
-                %
-                %             pause; close;
-                %
-                % %             plot3(x_data(tmp_finite_indices)/Rs,y_data(tmp_finite_indices)/Rs,z_data(tmp_finite_indices)/Rs,'o');
-                % %             xlim([-10 10]); ylim([-10 10]); zlim([-10 10]); pause; close;
-                %
-                %             % END TEST TEST.
-                
+                                
             end;
             
             
@@ -150,29 +125,8 @@ for art_iterations = 1:no_of_ART_iterations
         caxis([0 max(data(:))]); xlim([min(x_data(:)) max(x_data(:))]/Rs); ylim([min(y_data(:)) max(y_data(:))]/Rs); zlim([min(z_data(:)) max(z_data(:))]/Rs);
         colormap(gray); shading('interp');
         
-        %   pause;
-        
-        
-        %     % Collect LOS data into the master matrix.
-        %     data_LOS_master = [data_LOS_master ; data_2D_LOS(:)];
-        %     % Collect G-factors into the master matrix.
-        %     G_tot_tmp_master = zeros(length(y_POS),length(x_data(:)));
-        %     for ss = 1:length(y_POS),
-        %
-        %         G_tot_tmp_master(ss,grid_indices(ss,isfinite(grid_indices(ss,:)))) = G_tot_LOS(ss,isfinite(G_tot_LOS(ss,:)));
-        %
-        %     end;
-        %
-        %     G_tot_master = [G_tot_master ; G_tot_tmp_master];
-        %
         [y_gridded, z_gridded] = meshgrid(min(y_POS):resolution_meters:max(y_POS),min(z_POS):resolution_meters:max(z_POS));
-        %
-        %     figure;
-        %     plot3(x_data(:)/Rs,y_data(:)/Rs,z_data(:)/Rs,'.','color','k'); hold on;
-        %     plot3(x_data(grid_indices(isfinite(grid_indices)))/Rs,y_data(grid_indices(isfinite(grid_indices)))/Rs,z_data(grid_indices(isfinite(grid_indices)))/Rs,'o','color','b');
-        %     title('Grid (dots) and points covered by given LOS (circles)');
-        %     xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]');
-        
+         
         data_2D_LOS_grid = griddata(y_POS,z_POS,data_2D_LOS,y_gridded,z_gridded,'linear');
         r_gridded = sqrt(y_gridded.^2 + z_gridded.^2);
         kk = find(r_gridded < FOV(1)*Rs); [kk_i,kk_j] = ind2sub(size(r_gridded),kk);
@@ -196,22 +150,6 @@ for art_iterations = 1:no_of_ART_iterations
     
 end; % ART iterations.
 
-% % % Solve the inverse problem. First using regular '\'-method.
-% % Ne_inverted = (G_tot_master\data_LOS_master)/dr;
-% % Then using SVD.
-% [U,S,V] = svd(G_tot_master);
-% epsilon=0.01; kk=find(S < epsilon*max(S(:))); S(kk)=Inf; W=1./S;
-% Ne_inverted_svd = (V*W.'*U.'*data_LOS_master)/dr;
-%
-% % % SVD with nonnegativity constrain. See http://math.stackexchange.com/questions/271794/solution-to-underdetermined-linear-equations.
-% % J = G_tot_master.'*G_tot_master; [U,S,V] = svd(J);
-% % epsilon=0.01; kk=find(S < epsilon*max(S(:))); S(kk)=Inf; W=1./S;
-% % Ne_inverted_svd_positive = (V*W.'*U.'*(G_tot_master.'*data_LOS_master))/dr;
-%
-% % Ne_inverted_gridded = reshape(Ne_inverted,31,31,31);
-% Ne_inverted_svd_gridded = reshape(Ne_inverted_svd,i_dim,j_dim,k_dim);
-%
-%
 figure; slice(x_data/Rs,y_data/Rs,z_data/Rs,data,[0],[5],[-3.5]); colorbar; title('"True" electron density [#/m^3] in the solar corona'); xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]');
 caxis([0 max(data(:))]); xlim([min(x_data(:)) max(x_data(:))]/Rs); ylim([min(y_data(:)) max(y_data(:))]/Rs); zlim([min(z_data(:)) max(z_data(:))]/Rs);
 colormap(gray); shading('interp');
@@ -249,5 +187,4 @@ title(sprintf('Convergence for %1.0f ART iterations and %01.0f spacecraft',no_of
 %
 % end;
 
-
-
+toc
