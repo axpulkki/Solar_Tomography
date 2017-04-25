@@ -63,16 +63,15 @@ data_2D_LOS = zeros(1,length(x_POS_rot));
 % Loop over the LOS.
 for ii = 1:length(x_POS_rot),
     
-    % LOS unit vectors.
-    r_LOS = [(x_obs_rot - x_POS_rot(ii)) ; (y_obs_rot - y_POS_rot(ii)) ; (z_obs_rot - z_POS_rot(ii))];
-    e_LOS = -r_LOS/sqrt(r_LOS.'*r_LOS);
+    % LOS unit vector.
+    r_LOS = -[(x_obs_rot - x_POS_rot(ii)) ; (y_obs_rot - y_POS_rot(ii)) ; (z_obs_rot - z_POS_rot(ii))];
     
     % Determine the grid indices the LOS ray passes through. THIS IS
     % WHERE WE CAN PLUG IN ALSO OTHER RAY TRACING ALGORITHMS.
-    grid_indices = amanatidesWooAlgorithm_AP(r_obs_rot, e_LOS, grid3D);
+    grid_indices = amanatidesWooAlgorithm_AP(r_obs_rot, r_LOS, grid3D); %pause(0.5); close;
     
     % Continue only if the LOS pierced the data cube through more than one grid point.
-    if length(grid_indices) > 1,
+    if length(grid_indices) > 2,
         
         % Extract data values along the LOS. Values outside the data cube domain are set to 0.
         data_along_LOS = data(grid_indices);

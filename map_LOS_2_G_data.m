@@ -56,29 +56,34 @@ max_no_grid_points = ceil(sqrt( grid3D.nx.^2 + grid3D.ny.^2 + grid3D.nz.^2 ));
 grid_indices = NaN*zeros(length(y_POS),max_no_grid_points); cube_pierce_length = NaN*zeros(length(y_POS),1);
 G_T_LOS = grid_indices; G_P_LOS = grid_indices; G_R_LOS = grid_indices; G_tot_LOS = grid_indices;
 
+% Loop over LOS (i.e. plane-of-sky points)
 for ii = 1:length(x_POS_rot),
     
-    % LOS unit vectors.
-    r_LOS = [(x_obs_rot - x_POS_rot(ii)) ; (y_obs_rot - y_POS_rot(ii)) ; (z_obs_rot - z_POS_rot(ii))];
-    e_LOS = -r_LOS/sqrt(r_LOS.'*r_LOS);
+    % LOS vector.
+    r_LOS = -[(x_obs_rot - x_POS_rot(ii)) ; (y_obs_rot - y_POS_rot(ii)) ; (z_obs_rot - z_POS_rot(ii))];
     
     % Determine the grid indices that the LOS ray passes through. THIS IS
     % WHERE WE CAN PLUG IN ALSO OTHER RAY TRACING ALGORITHMS.
-    grid_indices_LOS = amanatidesWooAlgorithm_AP(r_obs_rot, e_LOS, grid3D);
+    grid_indices_LOS = amanatidesWooAlgorithm_AP(r_obs_rot, r_LOS, grid3D);
     
-    % Check if the LOS went through the data domain via more one grid point. If not, return NaNs.
+    % Check if the LOS went through the data domain via more than one grid point. If not, return NaNs.
     if length(grid_indices_LOS) > 1,
         
         % Segment lengths of the grid points along the LOS ray. ASSUME THE GRID INDICES ARE GIVEN IN ORDER FROM START TO END OF THE RAY.
         cube_pierce_length(ii) = sqrt( (x_data(grid_indices_LOS(end)) - x_data(grid_indices_LOS(1))).^2 + (y_data(grid_indices_LOS(end)) - y_data(grid_indices_LOS(1))).^2 + (z_data(grid_indices_LOS(end)) - z_data(grid_indices_LOS(1))).^2 );
-                
-        % Record to master indices holder.
+                        
+        % Record to the master indices holder.
         grid_indices(ii,1:length(grid_indices_LOS)) = grid_indices_LOS;
                 
+%         % Coordinates at which G-factors are evaluated.
+%         x_Gfactor = x_data(grid_indices(ii,isfinite(grid_indices(ii,:))));
+%         y_Gfactor = y_data(grid_indices(ii,isfinite(grid_indices(ii,:))));
+%         z_Gfactor = z_data(grid_indices(ii,isfinite(grid_indices(ii,:))));
+
         % Coordinates at which G-factors are evaluated.
-        x_Gfactor = x_data(grid_indices(ii,isfinite(grid_indices(ii,:))));
-        y_Gfactor = y_data(grid_indices(ii,isfinite(grid_indices(ii,:))));
-        z_Gfactor = z_data(grid_indices(ii,isfinite(grid_indices(ii,:))));
+        x_Gfactor = x_data(grid_indices_LOS);
+        y_Gfactor = y_data(grid_indices_LOS);
+        z_Gfactor = z_data(grid_indices_LOS);
         
         % Thomson scattering parameters along the LOS at the grid points.
         [G_T_tmp,G_P_tmp,G_R_tmp,G_tot_tmp] = G_Thomson(x_obs_rot,y_obs_rot,z_obs_rot,x_Gfactor,y_Gfactor,z_Gfactor,u);
