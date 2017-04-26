@@ -178,9 +178,9 @@ for art_iterations = 1:no_of_ART_iterations
             eval(sprintf('print -dpng %s/reconstructed_electron_density_after_ART_%01.0f_observations_%01.0f.png',scenario.name,art_iterations,ii));
             
             figure; plot(line_plot_distance/Rs,eval(sprintf('squeeze(Ne_inverted(%s))',scenario.line_plot{:})),'k'); hold on;
-            plot(eval(sprintf('squeeze(z_data(%s))/Rs',scenario.line_plot{:})),eval(sprintf('squeeze(data(%s))',scenario.line_plot{:})),'b');
+            plot(line_plot_distance/Rs,eval(sprintf('squeeze(data(%s))',scenario.line_plot{:})),'b');
             xlabel('Distance along the line [Rs]'); ylabel('Electron density [#/m^3]'); grid on;
-            title(sprintf('True (blue) and reconstructed (black) electron density [#/m^3]. ART iteration %01.0f, views %01.0f.',art_iterations,ii)); xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]');
+            title(sprintf('True (blue) and reconstructed (black) electron density [#/m^3]. ART iteration %01.0f, views %01.0f.',art_iterations,ii));
           
             eval(sprintf('print -dpng ./%s/Line_plot_after_ART_%01.0f_observations_%01.0f.png',scenario.name,art_iterations,ii)); close;
             
