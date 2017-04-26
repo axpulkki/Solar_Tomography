@@ -6,7 +6,7 @@
 cc;
 
 % The structure type;
-structureType = 'Spherical&Gaussian';         % CurrentSheet   Gaussian
+structureType = 'CurrentSheet';         % CurrentSheet   Gaussian
 
 % Solar radius.
 Rs = 695700e3; % m.
@@ -45,7 +45,7 @@ switch structureType
         kk = find(radius_from_sphere_center > sphere_radius);
         Ne(kk) = 0; Ne = reshape(Ne,n,m,k);
         
-    case 'Spherical&Gaussian'
+    case 'Spherical_Gaussian'
         
         [x,y,z] = meshgrid(0:0.15:12,0:0.15:12,0:0.15:12); [n,m,k] = size(x);
         Ne = zeros(size(x));
@@ -56,7 +56,7 @@ switch structureType
         kk = find(radius_from_sphere_center > sphere_radius);
         Ne(kk) = 0; Ne = reshape(Ne,n,m,k);
         % Add Gaussian small-scale structure.
-        Ne_gauss = 11^10*exp(-(20e-1*(x - 5).^2 + 20e-1*(y - 5).^2 + 20e-1*(z - 7).^2));
+        Ne_gauss = 11^10*exp(-(30e-1*(x - 5).^2 + 30e-1*(y - 5).^2 + 30e-1*(z - 7).^2));
         Ne = Ne + Ne_gauss;
         
         % Slices used in the plotting.
@@ -79,7 +79,7 @@ switch structureType
         
         % Add speherical blob(s).
         radius_blob_1 = 0.6;
-        r_blob_1 = sqrt( (x - 7).^2 + (y - 0).^2 + (z - 0).^2 );
+        r_blob_1 = sqrt( (x - 7).^2 + (y - 0.5).^2 + (z - 0).^2 );
         kk_blob_1 = find (r_blob_1 <= radius_blob_1);
         Ne(kk_blob_1) = 1.3*(10^10);
         
@@ -119,13 +119,26 @@ switch structureType
         Ne = Ne_new;
         x = x_new; y = y_new; z = z_new;
         
+        % Slices used in the plotting.
+        slices_plot = {0,5,-3.5};
+        % Coordinates of the line plot through the cube.
+        line_plot = {'43,:,44'};
+        
 end;
 
-figure; slice(x,y,z,Ne,slices_plot{:}); colorbar; colormap('gray'); shading('interp'); xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]'); xlim([-15 15]); ylim([-15 15]); zlim([-15 15]);
+% Coordinates of the line and the distance from the first point in the line.
+x_line = eval(sprintf('squeeze(x(%s))',line_plot{:}));
+y_line = eval(sprintf('squeeze(y(%s))',line_plot{:}));
+z_line = eval(sprintf('squeeze(z(%s))',line_plot{:}));
+line_plot_distance = sqrt( (x_line(1) - x_line).^2 + (y_line(1) - y_line).^2 + (z_line(1) - z_line).^2 );
 
-figure; plot(eval(sprintf('squeeze(z(%s))/Rs',line_plot{:})),eval(sprintf('squeeze(Ne(%s))',line_plot{:})),'k');
-xlabel('distance [Rs]'); ylabel('Electron density [#/m^3]'); title('Electron density through the volume'); grid on;
+figure; slice(x,y,z,Ne,slices_plot{:}); colorbar; colormap('gray'); shading('interp'); xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]'); xlim([-15 15]); ylim([-15 15]); zlim([-15 15]); hold on;
+plot3(x_line,y_line,z_line,'linewidth',3);
 
-x_data = x*Rs; y_data = y*Rs; z_data = z*Rs; data = Ne; save CubeDataTest x_data y_data z_data data;
+% Plot.
+figure; plot(line_plot_distance,eval(sprintf('squeeze(Ne(%s))',line_plot{:})),'k');
+xlabel('Distance along the line [Rs]'); ylabel('Electron density [#/m^3]'); title('Electron density through the volume'); grid on;
+
+x_data = x*Rs; y_data = y*Rs; z_data = z*Rs; data = Ne; eval(sprintf('save DataCube_%s x_data y_data z_data data slices_plot line_plot;',structureType));
 
 

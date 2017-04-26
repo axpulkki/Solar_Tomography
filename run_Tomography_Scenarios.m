@@ -49,6 +49,12 @@ Ne_inverted = zeros(size(data));
 % Generate the scenario folder.
 mkdir(scenario.name);
 
+% Coordinates of the line and the distance from the first point in the line.
+x_line = eval(sprintf('squeeze(x_data(%s))',scenario.line_plot{:}));
+y_line = eval(sprintf('squeeze(y_data(%s))',scenario.line_plot{:}));
+z_line = eval(sprintf('squeeze(z_data(%s))',scenario.line_plot{:}));
+line_plot_distance = sqrt( (x_line(1) - x_line).^2 + (y_line(1) - y_line).^2 + (z_line(1) - z_line).^2 );
+
 % %% CALC n record brensenham indices FOR ALL PIXELS and FOR ALL CAMERAS.
 %
 % for ll = 1: NcamViews
@@ -88,7 +94,7 @@ for ii = 1:NcamViews,
         xlabel('y [Rs]'); ylabel('z [Rs]');
         colormap(gray); shading('interp');
         
-        eval(sprintf('print -dpng %s/coronagraph_image_%01.0f.png',scenario.name,ii));
+        eval(sprintf('print -dpng %s/coronagraph_image_%01.0f.png',scenario.name,ii)); close;
         
     end;
     
@@ -165,11 +171,19 @@ for art_iterations = 1:no_of_ART_iterations
         if scenario.plot
             
             figure; slice(x_data/Rs,y_data/Rs,z_data/Rs,Ne_inverted_ART_gridded,scenario.slices_plot{:}); colorbar;
-            title(sprintf('Reconstructed electron density [#/m^3] in the solar corona. ART iteration %01.0f, views %01.0f.',art_iterations,ii)); xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]');
+            title(sprintf('Reconstructed electron density [#/m^3]. ART iteration %01.0f, views %01.0f.',art_iterations,ii)); xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]');
             caxis([0 max(data(:))]); xlim([min(x_data(:)) max(x_data(:))]/Rs); ylim([min(y_data(:)) max(y_data(:))]/Rs); zlim([min(z_data(:)) max(z_data(:))]/Rs);
             colormap(gray); shading('interp');
             
             eval(sprintf('print -dpng %s/reconstructed_electron_density_after_ART_%01.0f_observations_%01.0f.png',scenario.name,art_iterations,ii));
+            
+            figure; plot(line_plot_distance/Rs,eval(sprintf('squeeze(Ne_inverted(%s))',scenario.line_plot{:})),'k'); hold on;
+            plot(eval(sprintf('squeeze(z_data(%s))/Rs',scenario.line_plot{:})),eval(sprintf('squeeze(data(%s))',scenario.line_plot{:})),'b');
+            xlabel('Distance along the line [Rs]'); ylabel('Electron density [#/m^3]'); grid on;
+            title(sprintf('True (blue) and reconstructed (black) electron density [#/m^3]. ART iteration %01.0f, views %01.0f.',art_iterations,ii)); xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]');
+          
+            eval(sprintf('print -dpng ./%s/Line_plot_after_ART_%01.0f_observations_%01.0f.png',scenario.name,art_iterations,ii)); close;
+            
             
         end;
         
@@ -182,18 +196,13 @@ eval(sprintf('save %s/run_data.mat',scenario.name));
 
 if scenario.plot
     
-    figure; slice(x_data/Rs,y_data/Rs,z_data/Rs,data,scenario.slices_plot{:}); colorbar; title('True electron density [#/m^3] in the solar corona.'); xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]');
+    figure; slice(x_data/Rs,y_data/Rs,z_data/Rs,data,scenario.slices_plot{:}); colorbar; title('True electron density [#/m^3].'); xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]');
     caxis([0 max(data(:))]); xlim([min(x_data(:)) max(x_data(:))]/Rs); ylim([min(y_data(:)) max(y_data(:))]/Rs); zlim([min(z_data(:)) max(z_data(:))]/Rs);
-    colormap(gray); shading('interp');
+    colormap(gray); shading('interp'); hold on;
+    plot3(x_line,y_line,z_line,'linewidth',3);
     
     eval(sprintf('print -dpng %s/true_electron_density.png',scenario.name));
-    
-    figure; plot(eval(sprintf('squeeze(z_data(%s))/Rs',scenario.line_plot{:})),eval(sprintf('squeeze(Ne_inverted(%s))',scenario.line_plot{:})),'k'); hold on;
-    plot(eval(sprintf('squeeze(z_data(%s))/Rs',scenario.line_plot{:})),eval(sprintf('squeeze(data(%s))',scenario.line_plot{:})),'b');
-    xlabel('distance [Rs]'); ylabel('Electron density [#/m^3]'); title('True (blue) and reconstructed (black) electron density'); grid on;
-    
-    eval(sprintf('print -dpng ./%s/Line_plot_true_reconstructed.png',scenario.name));
-    
+        
     figure; plot(rms_difference); grid on;
     title(sprintf('Convergence for %1.0f ART iterations and %01.0f spacecraft',no_of_ART_iterations,NcamViews)); xlabel('ART step'); ylabel('RMS [#/m^3]');
     
@@ -226,7 +235,7 @@ if scenario.plot
         xlabel('y [Rs]'); ylabel('z [Rs]');
         colormap(gray); shading('interp');
         
-        eval(sprintf('print -dpng %s/coronagraph_image_from_reconstruction_%01.0f.png',scenario.name,ii));
+        eval(sprintf('print -dpng %s/coronagraph_image_from_reconstruction_%01.0f.png',scenario.name,ii)); close;
         
     end;
     
