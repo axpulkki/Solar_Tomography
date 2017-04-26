@@ -6,7 +6,7 @@
 cc;
 
 % The structure type;
-structureType = 'Gaussian';         % CurrentSheet   Gaussian
+structureType = 'Spherical&Gaussian';         % CurrentSheet   Gaussian
 
 % Solar radius.
 Rs = 695700e3; % m.
@@ -47,7 +47,7 @@ switch structureType
         
     case 'Spherical&Gaussian'
         
-        [x,y,z] = meshgrid(0:0.2:12,0:0.2:12,0:0.2:12); [n,m,k] = size(x);
+        [x,y,z] = meshgrid(0:0.15:12,0:0.15:12,0:0.15:12); [n,m,k] = size(x);
         Ne = zeros(size(x));
         
         Ne = 10^9*((x - 4).^2 + (y - 4).^2 + (z - 4).^2);
@@ -56,8 +56,13 @@ switch structureType
         kk = find(radius_from_sphere_center > sphere_radius);
         Ne(kk) = 0; Ne = reshape(Ne,n,m,k);
         % Add Gaussian small-scale structure.
-        Ne_gauss = 11^10*exp(-(10e-1*(x - 5).^2 + 10e-1*(y - 5).^2 + 10e-1*(z - 7).^2));
+        Ne_gauss = 11^10*exp(-(20e-1*(x - 5).^2 + 20e-1*(y - 5).^2 + 20e-1*(z - 7).^2));
         Ne = Ne + Ne_gauss;
+        
+        % Slices used in the plotting.
+        slices_plot = {5, 5, 7};
+        % Coordinates of the line plot through the cube.
+        line_plot = {'34,34,:'};
         
     case 'CurrentSheet'
         
@@ -116,8 +121,11 @@ switch structureType
         
 end;
 
-figure; slice(x,y,z,Ne,[0],[5],[-3.5]); colorbar; colormap('gray'); shading('interp'); xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]'); xlim([-15 15]); ylim([-15 15]); zlim([-15 15]);
+figure; slice(x,y,z,Ne,slices_plot{:}); colorbar; colormap('gray'); shading('interp'); xlabel('x [Rs]'); ylabel('y [Rs]'); zlabel('z [Rs]'); xlim([-15 15]); ylim([-15 15]); zlim([-15 15]);
 
-x_data = x*Rs; y_data = y*Rs; z_data = z*Rs; data = Ne; save CubeDataGaussian x_data y_data z_data data;
+figure; plot(eval(sprintf('squeeze(z(%s))/Rs',line_plot{:})),eval(sprintf('squeeze(Ne(%s))',line_plot{:})),'k');
+xlabel('distance [Rs]'); ylabel('Electron density [#/m^3]'); title('Electron density through the volume'); grid on;
+
+x_data = x*Rs; y_data = y*Rs; z_data = z*Rs; data = Ne; save CubeDataTest x_data y_data z_data data;
 
 
