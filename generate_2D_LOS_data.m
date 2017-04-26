@@ -24,7 +24,7 @@ resolution_meters = tan(resolution_rad/2)*2*AU;
 % Generate the LOS grid in the plane of sky (yz-plane).
 [y_POS_tmp,z_POS_tmp] = meshgrid(-FOV(2)*Rs:resolution_meters:FOV(2)*Rs,-FOV(2)*Rs:resolution_meters:FOV(2)*Rs);
 
-% Remove LOS points outside the FOV.
+% Remove LOS points outside the FOV. NPS:creates the circle around the square image
 radius_POS = sqrt(y_POS_tmp.^2 + z_POS_tmp.^2);
 kk = find(radius_POS >= FOV(1)*Rs & radius_POS <= FOV(2)*Rs); y_POS = y_POS_tmp(kk); z_POS = z_POS_tmp(kk); x_POS = zeros(size(y_POS));
 
