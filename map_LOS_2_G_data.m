@@ -49,9 +49,9 @@ grid3D.nz = length(z_data(1,1,:));
 grid3D.minBound = [min(x_data(1,:,1)), min(y_data(:,1,1)), min(z_data(1,1,:))]';
 grid3D.maxBound = [max(x_data(1,:,1)), max(y_data(:,1,1)), max(z_data(1,1,:))]';
 
-% Maximum possible number of grid point in a given LOS. This will be
+% (approximate) Maximum possible number of grid point in a given LOS. This will be
 % used to initialize the grid index and other matrices.
-max_no_grid_points = ceil(sqrt( grid3D.nx.^2 + grid3D.ny.^2 + grid3D.nz.^2 ));
+max_no_grid_points = 1.5*ceil(sqrt( grid3D.nx.^2 + grid3D.ny.^2 + grid3D.nz.^2 ));
 
 grid_indices = NaN*zeros(length(y_POS),max_no_grid_points); cube_pierce_length = NaN*zeros(length(y_POS),1);
 G_T_LOS = grid_indices; G_P_LOS = grid_indices; G_R_LOS = grid_indices; G_tot_LOS = grid_indices;

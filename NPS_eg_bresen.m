@@ -18,6 +18,12 @@ function OUT_Indices = NPS_eg_bresen (Ist_loc, Ien_loc,IN_extra)
 % try with test_NPS_eg_bresen
 % NPS. 17 Apr 2017 
 
+% Solar radius.
+Rs = 695700e3; % m.
+% 1 AU
+AU = 149598000e3; % m.
+
+km2rs = (1/(1e-3*Rs));
 
 st_loc = Ist_loc *(km2rs/1000); % /1000) * km2rs;  
 en_loc = Ien_loc *(km2rs/1000); % /1000) * km2rs;
@@ -111,7 +117,7 @@ ExIndexGrd = voxel2ind (xn,yn,Expt);
 [xpt,ypt,zpt] = bresenham_line3d (Enpt,Expt,0);
 brhmPt = [xpt',ypt',zpt'];
 BhmIndexGrd = voxel2ind (xn,yn,brhmPt);  % need to check this is same as inbuilt: sub2ind
-sub2ind
+%sub2ind
 
 %% figure checking
 if Fplot == 1
